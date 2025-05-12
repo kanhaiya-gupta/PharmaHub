@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from src.database.database_sqlite import SQLiteDatabase
 from datetime import datetime, timedelta
+from typing import Optional, List
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -152,6 +153,62 @@ async def add_medicine(
             raise HTTPException(status_code=400, detail="Failed to add medicine")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/medicines/batch-add")
+async def add_batch_medicines(
+    invoice_number: str = Form(...),
+    supplier: str = Form(...),
+    batch_number: str = Form(...),
+    batch_size: int = Form(...),
+    expiry_date: str = Form(...),
+    storage_location: str = Form(...),
+    items: List[dict] = Form(...),
+    db: SQLiteDatabase = Depends(get_db)
+):
+    try:
+        # Add batch record
+        batch_id = db.add_batch(
+            invoice_number=invoice_number,
+            supplier=supplier,
+            batch_number=batch_number,
+            batch_size=batch_size,
+            expiry_date=datetime.strptime(expiry_date, "%Y-%m-%d"),
+            storage_location=storage_location
+        )
+
+        # Add each medicine in the batch
+        for item in items:
+            db.add_medicine(
+                name=item['name'],
+                brand=item['brand'],
+                batch_number=batch_number,
+                expiry_date=datetime.strptime(expiry_date, "%Y-%m-%d"),
+                storage_location=storage_location,
+                type=item.get('type', ''),
+                price=float(item['price']),
+                stock_quantity=int(item['quantity']),
+                schedule_category=item.get('schedule_category', ''),
+                requires_prescription=item['requires_prescription'] == 'Yes',
+                barcode=item.get('barcode')
+            )
+
+        return RedirectResponse(url="/medicines", status_code=303)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/api/medicines/barcode/{barcode}")
+async def get_medicine_by_barcode(barcode: str, db: SQLiteDatabase = Depends(get_db)):
+    medicine = db.get_medicine_by_barcode(barcode)
+    if not medicine:
+        raise HTTPException(status_code=404, detail="Medicine not found")
+    return medicine
+
+@router.get("/api/medicines/batch/{barcode}")
+async def get_batch_by_barcode(barcode: str, db: SQLiteDatabase = Depends(get_db)):
+    batch = db.get_batch_by_barcode(barcode)
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    return batch
 
 # Customer Routes
 @router.post("/customers/add")

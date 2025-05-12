@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Manage Medicines</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -15,52 +16,139 @@
 
   <div class="container mt-4">
     <h2>Add New Medicine</h2>
-    <form class="row g-3 mb-4" action="/medicines/add" method="POST">
+    <div class="mb-4">
+      <div class="btn-group" role="group">
+        <button type="button" class="btn btn-primary active" id="single-item-btn">Single Item</button>
+        <button type="button" class="btn btn-outline-primary" id="batch-btn">Batch Entry</button>
+      </div>
+    </div>
+
+    <!-- Single Item Form -->
+    <form class="row g-3 mb-4" id="single-item-form" action="/medicines/add" method="POST">
+      <div class="col-md-6">
+        <label class="form-label">Scan Barcode/QR Code</label>
+        <div class="input-group">
+          <input type="text" id="barcode-input" name="barcode" class="form-control" placeholder="Scan or enter barcode">
+          <button type="button" class="btn btn-outline-secondary" id="start-scan">Start Scanner</button>
+        </div>
+        <div id="reader" class="mt-2" style="display: none;"></div>
+      </div>
       <div class="col-md-6">
         <label class="form-label">Medicine Name</label>
-        <input type="text" name="name" class="form-control" required>
+        <input type="text" name="name" id="medicine-name" class="form-control" required>
       </div>
       <div class="col-md-6">
         <label class="form-label">Brand</label>
-        <input type="text" name="brand" class="form-control">
+        <input type="text" name="brand" id="medicine-brand" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Batch Number</label>
-        <input type="text" name="batch_number" class="form-control">
+        <input type="text" name="batch_number" id="medicine-batch" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Expiry Date</label>
-        <input type="date" name="expiry_date" class="form-control">
+        <input type="date" name="expiry_date" id="medicine-expiry" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Storage Location</label>
-        <input type="text" name="storage_location" class="form-control">
+        <input type="text" name="storage_location" id="medicine-location" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Type</label>
-        <input type="text" name="type" class="form-control">
+        <input type="text" name="type" id="medicine-type" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Price (per unit)</label>
-        <input type="number" name="price" step="0.01" class="form-control" required>
+        <input type="number" name="price" id="medicine-price" step="0.01" class="form-control" required>
       </div>
       <div class="col-md-4">
         <label class="form-label">Stock Quantity</label>
-        <input type="number" name="stock_quantity" class="form-control" required>
+        <input type="number" name="stock_quantity" id="medicine-stock" class="form-control" required>
       </div>
       <div class="col-md-4">
         <label class="form-label">Schedule Category</label>
-        <input type="text" name="schedule_category" class="form-control">
+        <input type="text" name="schedule_category" id="medicine-schedule" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Prescription Required</label>
-        <select name="requires_prescription" class="form-select">
+        <select name="requires_prescription" id="medicine-prescription" class="form-select">
           <option value="Yes">Yes</option>
           <option value="No">No</option>
         </select>
       </div>
       <div class="col-12">
         <button type="submit" class="btn btn-success">Save Medicine</button>
+      </div>
+    </form>
+
+    <!-- Batch Entry Form -->
+    <form class="row g-3 mb-4" id="batch-form" action="/medicines/batch-add" method="POST" style="display: none;">
+      <div class="col-md-6">
+        <label class="form-label">Invoice Number</label>
+        <input type="text" name="invoice_number" class="form-control" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Supplier</label>
+        <input type="text" name="supplier" class="form-control" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Scan Batch Barcode/QR Code</label>
+        <div class="input-group">
+          <input type="text" id="batch-barcode-input" class="form-control" placeholder="Scan or enter batch barcode">
+          <button type="button" class="btn btn-outline-secondary" id="start-batch-scan">Start Scanner</button>
+        </div>
+        <div id="batch-reader" class="mt-2" style="display: none;"></div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Batch Size</label>
+        <input type="number" name="batch_size" class="form-control" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Batch Number</label>
+        <input type="text" name="batch_number" class="form-control" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Expiry Date</label>
+        <input type="date" name="expiry_date" class="form-control" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Storage Location</label>
+        <input type="text" name="storage_location" class="form-control" required>
+      </div>
+      <div class="col-12">
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Medicine Name</th>
+                <th>Brand</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Schedule Category</th>
+                <th>Prescription Required</th>
+              </tr>
+            </thead>
+            <tbody id="batch-items">
+              <tr>
+                <td><input type="text" name="items[0][name]" class="form-control" required></td>
+                <td><input type="text" name="items[0][brand]" class="form-control"></td>
+                <td><input type="number" name="items[0][price]" class="form-control" step="0.01" required></td>
+                <td><input type="number" name="items[0][quantity]" class="form-control" required></td>
+                <td><input type="text" name="items[0][schedule_category]" class="form-control"></td>
+                <td>
+                  <select name="items[0][requires_prescription]" class="form-select">
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <button type="button" class="btn btn-secondary mb-3" id="add-batch-item">Add Another Item</button>
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-success">Save Batch</button>
       </div>
     </form>
 
@@ -92,5 +180,166 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let html5QrcodeScanner = null;
+    let batchScanner = null;
+    let itemCount = 1;
+
+    // Toggle between single item and batch entry forms
+    document.getElementById('single-item-btn').addEventListener('click', function() {
+      this.classList.add('active');
+      this.classList.remove('btn-outline-primary');
+      this.classList.add('btn-primary');
+      document.getElementById('batch-btn').classList.remove('active', 'btn-primary');
+      document.getElementById('batch-btn').classList.add('btn-outline-primary');
+      document.getElementById('single-item-form').style.display = 'flex';
+      document.getElementById('batch-form').style.display = 'none';
+    });
+
+    document.getElementById('batch-btn').addEventListener('click', function() {
+      this.classList.add('active');
+      this.classList.remove('btn-outline-primary');
+      this.classList.add('btn-primary');
+      document.getElementById('single-item-btn').classList.remove('active', 'btn-primary');
+      document.getElementById('single-item-btn').classList.add('btn-outline-primary');
+      document.getElementById('single-item-form').style.display = 'none';
+      document.getElementById('batch-form').style.display = 'flex';
+    });
+
+    // Single item scanner
+    document.getElementById('start-scan').addEventListener('click', function() {
+      const reader = document.getElementById('reader');
+      if (reader.style.display === 'none') {
+        reader.style.display = 'block';
+        html5QrcodeScanner = new Html5QrcodeScanner(
+          "reader", { fps: 10, qrbox: 250 });
+        
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+      } else {
+        reader.style.display = 'none';
+        if (html5QrcodeScanner) {
+          html5QrcodeScanner.clear();
+        }
+      }
+    });
+
+    // Batch scanner
+    document.getElementById('start-batch-scan').addEventListener('click', function() {
+      const reader = document.getElementById('batch-reader');
+      if (reader.style.display === 'none') {
+        reader.style.display = 'block';
+        batchScanner = new Html5QrcodeScanner(
+          "batch-reader", { fps: 10, qrbox: 250 });
+        
+        batchScanner.render(onBatchScanSuccess, onScanFailure);
+      } else {
+        reader.style.display = 'none';
+        if (batchScanner) {
+          batchScanner.clear();
+        }
+      }
+    });
+
+    function onScanSuccess(decodedText, decodedResult) {
+      // Stop the scanner
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+        document.getElementById('reader').style.display = 'none';
+      }
+
+      // Set the barcode value
+      document.getElementById('barcode-input').value = decodedText;
+
+      // Fetch medicine details
+      fetchMedicineDetails(decodedText);
+    }
+
+    function onBatchScanSuccess(decodedText, decodedResult) {
+      // Stop the scanner
+      if (batchScanner) {
+        batchScanner.clear();
+        document.getElementById('batch-reader').style.display = 'none';
+      }
+
+      // Set the batch barcode value
+      document.getElementById('batch-barcode-input').value = decodedText;
+
+      // Fetch batch details
+      fetchBatchDetails(decodedText);
+    }
+
+    function onScanFailure(error) {
+      console.warn(`QR code scanning failed: ${error}`);
+    }
+
+    async function fetchMedicineDetails(barcode) {
+      try {
+        const response = await fetch(`/api/medicines/barcode/${barcode}`);
+        const data = await response.json();
+        
+        // Fill the form with the fetched data
+        document.getElementById('medicine-name').value = data.name || '';
+        document.getElementById('medicine-brand').value = data.brand || '';
+        document.getElementById('medicine-batch').value = data.batch_number || '';
+        document.getElementById('medicine-expiry').value = data.expiry_date || '';
+        document.getElementById('medicine-location').value = data.storage_location || '';
+        document.getElementById('medicine-type').value = data.type || '';
+        document.getElementById('medicine-price').value = data.price || '';
+        document.getElementById('medicine-stock').value = data.stock_quantity || '';
+        document.getElementById('medicine-schedule').value = data.schedule_category || '';
+        document.getElementById('medicine-prescription').value = data.requires_prescription ? 'Yes' : 'No';
+      } catch (error) {
+        console.error('Error fetching medicine details:', error);
+      }
+    }
+
+    async function fetchBatchDetails(barcode) {
+      try {
+        const response = await fetch(`/api/medicines/batch/${barcode}`);
+        const data = await response.json();
+        
+        // Fill batch details
+        document.querySelector('input[name="batch_number"]').value = data.batch_number || '';
+        document.querySelector('input[name="expiry_date"]').value = data.expiry_date || '';
+        document.querySelector('input[name="storage_location"]').value = data.storage_location || '';
+        
+        // Clear existing items
+        const tbody = document.getElementById('batch-items');
+        tbody.innerHTML = '';
+        
+        // Add items from batch
+        data.items.forEach((item, index) => {
+          addBatchItem(item);
+        });
+      } catch (error) {
+        console.error('Error fetching batch details:', error);
+      }
+    }
+
+    // Add new item to batch form
+    document.getElementById('add-batch-item').addEventListener('click', function() {
+      addBatchItem();
+    });
+
+    function addBatchItem(item = null) {
+      const tbody = document.getElementById('batch-items');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" name="items[${itemCount}][name]" class="form-control" required value="${item?.name || ''}"></td>
+        <td><input type="text" name="items[${itemCount}][brand]" class="form-control" value="${item?.brand || ''}"></td>
+        <td><input type="number" name="items[${itemCount}][price]" class="form-control" step="0.01" required value="${item?.price || ''}"></td>
+        <td><input type="number" name="items[${itemCount}][quantity]" class="form-control" required value="${item?.quantity || ''}"></td>
+        <td><input type="text" name="items[${itemCount}][schedule_category]" class="form-control" value="${item?.schedule_category || ''}"></td>
+        <td>
+          <select name="items[${itemCount}][requires_prescription]" class="form-select">
+            <option value="No" ${item?.requires_prescription === 'No' ? 'selected' : ''}>No</option>
+            <option value="Yes" ${item?.requires_prescription === 'Yes' ? 'selected' : ''}>Yes</option>
+          </select>
+        </td>
+      `;
+      tbody.appendChild(tr);
+      itemCount++;
+    }
+  </script>
 </body>
 </html>

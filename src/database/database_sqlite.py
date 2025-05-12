@@ -4,6 +4,7 @@ from typing import Dict, List, Any, Optional
 from src.utils.loggers import LoggerFactory
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime
 
 
 class SQLiteDatabase:
@@ -95,6 +96,33 @@ class SQLiteDatabase:
                 )
             ''')
 
+            # Create Batch table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS Batch (
+                    BatchID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    InvoiceNumber TEXT NOT NULL,
+                    Supplier TEXT NOT NULL,
+                    BatchNumber TEXT NOT NULL,
+                    BatchSize INTEGER NOT NULL,
+                    ExpiryDate DATE NOT NULL,
+                    StorageLocation TEXT NOT NULL,
+                    DateReceived DATE DEFAULT CURRENT_TIMESTAMP,
+                    Barcode TEXT UNIQUE
+                )
+            ''')
+
+            # Create BatchItem table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS BatchItem (
+                    BatchItemID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    BatchID INTEGER NOT NULL,
+                    MedicineID INTEGER NOT NULL,
+                    Quantity INTEGER NOT NULL,
+                    FOREIGN KEY (BatchID) REFERENCES Batch(BatchID),
+                    FOREIGN KEY (MedicineID) REFERENCES Medicine(MedicineID)
+                )
+            ''')
+
             # Create Medicine table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS Medicine (
@@ -102,7 +130,7 @@ class SQLiteDatabase:
                     Name TEXT NOT NULL,
                     Brand TEXT,
                     BatchNumber TEXT,
-                    ExpiryDate TEXT,
+                    ExpiryDate DATE,
                     Price REAL NOT NULL,
                     StockQuantity INTEGER NOT NULL,
                     Type TEXT,
@@ -110,6 +138,7 @@ class SQLiteDatabase:
                     ScheduleCategory TEXT,
                     DateAdded TEXT,
                     StorageLocationID INTEGER,
+                    Barcode TEXT UNIQUE,
                     FOREIGN KEY (StorageLocationID) REFERENCES StorageLocation(StorageLocationID)
                 )
             ''')
@@ -120,7 +149,7 @@ class SQLiteDatabase:
                     PurchaseID INTEGER PRIMARY KEY AUTOINCREMENT,
                     CustomerID INTEGER,
                     OperatorID INTEGER,
-                    DateOfPurchase TEXT NOT NULL,
+                    DateOfPurchase DATE,
                     TotalAmount REAL NOT NULL,
                     FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID),
                     FOREIGN KEY (OperatorID) REFERENCES Operator(OperatorID)
@@ -146,8 +175,8 @@ class SQLiteDatabase:
                     PrescriptionID INTEGER PRIMARY KEY AUTOINCREMENT,
                     CustomerID INTEGER,
                     DoctorName TEXT,
-                    IssueDate TEXT,
-                    ExpiryDate TEXT,
+                    IssueDate DATE,
+                    ExpiryDate DATE,
                     Status TEXT,
                     FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
                 )
@@ -861,6 +890,122 @@ class SQLiteDatabase:
         except sqlite3.Error as e:
             self.logger.error(f"Error deleting from PurchaseItem: {e}")
             return 0
+        finally:
+            conn.close()
+
+    def add_batch(self, invoice_number: str, supplier: str, batch_number: str, 
+                 batch_size: int, expiry_date: datetime, storage_location: str, 
+                 barcode: Optional[str] = None) -> Optional[int]:
+        """Add a new batch record.
+
+        Args:
+            invoice_number: The invoice number for this batch
+            supplier: The supplier's name
+            batch_number: The batch number
+            batch_size: Total number of items in the batch
+            expiry_date: Expiry date for the batch
+            storage_location: Where the batch is stored
+            barcode: Optional barcode for the batch
+
+        Returns:
+            The ID of the inserted batch record, or None if an error occurs
+        """
+        self.logger.info("Adding new batch record")
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO Batch (
+                    InvoiceNumber, Supplier, BatchNumber, BatchSize,
+                    ExpiryDate, StorageLocation, Barcode
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                invoice_number, supplier, batch_number, batch_size,
+                expiry_date, storage_location, barcode
+            ))
+            
+            batch_id = cursor.lastrowid
+            conn.commit()
+            self.logger.info(f"Successfully added batch with ID: {batch_id}")
+            return batch_id
+        except sqlite3.Error as e:
+            self.logger.error(f"Error adding batch: {e}")
+            return None
+        finally:
+            conn.close()
+
+    def get_batch_by_barcode(self, barcode: str) -> Optional[dict]:
+        """Get batch details by barcode.
+
+        Args:
+            barcode: The barcode to look up
+
+        Returns:
+            Dictionary containing batch details and its items, or None if not found
+        """
+        self.logger.info(f"Looking up batch with barcode: {barcode}")
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get batch details
+            cursor.execute("""
+                SELECT * FROM Batch WHERE Barcode = ?
+            """, (barcode,))
+            
+            batch = cursor.fetchone()
+            if not batch:
+                return None
+                
+            batch_dict = dict(batch)
+            
+            # Get items in this batch
+            cursor.execute("""
+                SELECT m.* FROM Medicine m
+                JOIN BatchItem bi ON m.MedicineID = bi.MedicineID
+                WHERE bi.BatchID = ?
+            """, (batch_dict['BatchID'],))
+            
+            items = [dict(row) for row in cursor.fetchall()]
+            batch_dict['items'] = items
+            
+            return batch_dict
+        except sqlite3.Error as e:
+            self.logger.error(f"Error looking up batch: {e}")
+            return None
+        finally:
+            conn.close()
+
+    def add_batch_item(self, batch_id: int, medicine_id: int, quantity: int) -> Optional[int]:
+        """Add an item to a batch.
+
+        Args:
+            batch_id: The ID of the batch
+            medicine_id: The ID of the medicine
+            quantity: The quantity of this medicine in the batch
+
+        Returns:
+            The ID of the inserted batch item record, or None if an error occurs
+        """
+        self.logger.info(f"Adding item {medicine_id} to batch {batch_id}")
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO BatchItem (BatchID, MedicineID, Quantity)
+                VALUES (?, ?, ?)
+            """, (batch_id, medicine_id, quantity))
+            
+            item_id = cursor.lastrowid
+            conn.commit()
+            self.logger.info(f"Successfully added batch item with ID: {item_id}")
+            return item_id
+        except sqlite3.Error as e:
+            self.logger.error(f"Error adding batch item: {e}")
+            return None
         finally:
             conn.close()
 
