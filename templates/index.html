@@ -10,17 +10,17 @@
   <!-- Navigation -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="index.html">Medical Store</a>
+      <a class="navbar-brand" href="/">Medical Store</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link active" href="index.html">Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link" href="medicines.html">Medicines</a></li>
-          <li class="nav-item"><a class="nav-link" href="purchases.html">Purchases</a></li>
-          <li class="nav-item"><a class="nav-link" href="customers.html">Customers</a></li>
-          <li class="nav-item"><a class="nav-link" href="operators.html">Operators</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="/medicines">Medicines</a></li>
+          <li class="nav-item"><a class="nav-link" href="/purchases">Purchases</a></li>
+          <li class="nav-item"><a class="nav-link" href="/customers">Customers</a></li>
+          <li class="nav-item"><a class="nav-link" href="/operators">Operators</a></li>
         </ul>
       </div>
     </div>
@@ -34,7 +34,7 @@
         <div class="card text-white bg-success mb-3">
           <div class="card-body">
             <h5 class="card-title">Total Medicines</h5>
-            <p class="card-text">120</p>
+            <p class="card-text">{{ stats.total_medicines }}</p>
           </div>
         </div>
       </div>
@@ -42,7 +42,7 @@
         <div class="card text-white bg-warning mb-3">
           <div class="card-body">
             <h5 class="card-title">Low Stock</h5>
-            <p class="card-text">8</p>
+            <p class="card-text">{{ stats.low_stock }}</p>
           </div>
         </div>
       </div>
@@ -50,15 +50,15 @@
         <div class="card text-white bg-danger mb-3">
           <div class="card-body">
             <h5 class="card-title">Expiring Soon</h5>
-            <p class="card-text">5</p>
+            <p class="card-text">{{ stats.expiring_soon }}</p>
           </div>
         </div>
       </div>
     </div>
     <h2>Quick Actions</h2>
     <div class="d-grid gap-2 d-md-flex">
-      <a href="medicines.html" class="btn btn-primary me-md-2">Add/View Medicines</a>
-      <a href="purchases.html" class="btn btn-outline-secondary">Record Purchase</a>
+      <a href="/medicines" class="btn btn-primary me-md-2">Add/View Medicines</a>
+      <a href="/purchases" class="btn btn-outline-secondary">Record Purchase</a>
     </div>
   </div>
 

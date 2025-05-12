@@ -9,52 +9,52 @@
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="index.html">Medical Store</a>
+      <a class="navbar-brand" href="/">Medical Store</a>
     </div>
   </nav>
 
   <div class="container mt-4">
     <h2>Add New Medicine</h2>
-    <form class="row g-3 mb-4">
+    <form class="row g-3 mb-4" action="/medicines/add" method="POST">
       <div class="col-md-6">
         <label class="form-label">Medicine Name</label>
-        <input type="text" class="form-control" required>
+        <input type="text" name="name" class="form-control" required>
       </div>
       <div class="col-md-6">
         <label class="form-label">Brand</label>
-        <input type="text" class="form-control">
+        <input type="text" name="brand" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Batch Number</label>
-        <input type="text" class="form-control">
+        <input type="text" name="batch_number" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Expiry Date</label>
-        <input type="date" class="form-control">
+        <input type="date" name="expiry_date" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Storage Location</label>
-        <input type="text" class="form-control">
+        <input type="text" name="storage_location" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Type</label>
-        <input type="text" class="form-control">
+        <input type="text" name="type" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Price (per unit)</label>
-        <input type="number" class="form-control">
+        <input type="number" name="price" step="0.01" class="form-control" required>
       </div>
       <div class="col-md-4">
         <label class="form-label">Stock Quantity</label>
-        <input type="number" class="form-control">
+        <input type="number" name="stock_quantity" class="form-control" required>
       </div>
       <div class="col-md-4">
         <label class="form-label">Schedule Category</label>
-        <input type="text" class="form-control">
+        <input type="text" name="schedule_category" class="form-control">
       </div>
       <div class="col-md-4">
         <label class="form-label">Prescription Required</label>
-        <select class="form-select">
+        <select name="requires_prescription" class="form-select">
           <option value="Yes">Yes</option>
           <option value="No">No</option>
         </select>
@@ -77,14 +77,16 @@
         </tr>
       </thead>
       <tbody>
+        {% for medicine in medicines %}
         <tr>
-          <td>Paracetamol</td>
-          <td>MedLife</td>
-          <td>150</td>
-          <td>Shelf A1</td>
-          <td>2025-12-01</td>
+          <td>{{ medicine.Name }}</td>
+          <td>{{ medicine.Brand }}</td>
+          <td>{{ medicine.StockQuantity }}</td>
+          <td>{{ medicine.StorageLocationID }}</td>
+          <td>{{ medicine.ExpiryDate }}</td>
           <td><button class="btn btn-sm btn-outline-primary">Edit</button></td>
         </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>

@@ -1,8 +1,9 @@
 import sqlite3
 import os
-from typing - python
 from typing import Dict, List, Any, Optional
 from src.utils.loggers import LoggerFactory
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 
 class SQLiteDatabase:
@@ -15,12 +16,18 @@ class SQLiteDatabase:
             db_name: Name of the SQLite database file (e.g., 'medical_store.db').
             config: Optional configuration dictionary for future extensions.
         """
-        self.db_name = db_name
+        # Set up base directories
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        self.results_dir = os.path.join(base_dir, "results")
+        self.db_path = os.path.join(self.results_dir, db_name)
+        
+        # Create results directory if it doesn't exist
+        os.makedirs(self.results_dir, exist_ok=True)
+        
         self.config = config or {}
 
         # Set up logger
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        log_dir = os.path.join(base_dir, "results", "logs")
+        log_dir = os.path.join(self.results_dir, "logs")
         logger_name = "DatabaseLogger"
         log_file_base = "database"
         self.logger = LoggerFactory(logger_name, log_dir, log_file_base).get_logger()
@@ -29,11 +36,16 @@ class SQLiteDatabase:
         # Create schema
         self._create_schema()
 
+        # Set up SQLAlchemy
+        SQLALCHEMY_DATABASE_URL = f"sqlite:///{self.db_path}"
+        engine = create_engine(SQLALCHEMY_DATABASE_URL)
+        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
     def _create_schema(self) -> None:
         """Create the database schema if it doesn't exist."""
         self.logger.info("Creating database schema")
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
             # Create MedicalStore table
@@ -55,6 +67,7 @@ class SQLiteDatabase:
                     Name TEXT NOT NULL,
                     ContactInfo TEXT,
                     Role TEXT,
+                    Email TEXT,
                     AssignedStoreID INTEGER,
                     FOREIGN KEY (AssignedStoreID) REFERENCES MedicalStore(StoreID)
                 )
@@ -127,6 +140,43 @@ class SQLiteDatabase:
                 )
             ''')
 
+            # Create Prescription table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS Prescription (
+                    PrescriptionID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    CustomerID INTEGER,
+                    DoctorName TEXT,
+                    IssueDate TEXT,
+                    ExpiryDate TEXT,
+                    Status TEXT,
+                    FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
+                )
+            ''')
+
+            # Create Insurance table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS Insurance (
+                    InsuranceID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    CustomerID INTEGER,
+                    Provider TEXT,
+                    PolicyNumber TEXT,
+                    CoverageDetails TEXT,
+                    FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
+                )
+            ''')
+
+            # Create InventoryAlert table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS InventoryAlert (
+                    AlertID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    MedicineID INTEGER,
+                    AlertType TEXT,
+                    Threshold INTEGER,
+                    Status TEXT,
+                    FOREIGN KEY (MedicineID) REFERENCES Medicine(MedicineID)
+                )
+            ''')
+
             conn.commit()
             self.logger.info("Database schema created successfully")
         except sqlite3.Error as e:
@@ -156,7 +206,7 @@ class SQLiteDatabase:
         query = f"INSERT INTO MedicalStore ({columns}) VALUES ({placeholders})"
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(data.values()))
             conn.commit()
@@ -187,7 +237,7 @@ class SQLiteDatabase:
             params = list(condition.values())
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute(query, params)
@@ -219,7 +269,7 @@ class SQLiteDatabase:
         query = f"DELETE FROM MedicalStore WHERE " + " AND ".join(conditions)
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(condition.values()))
             conn.commit()
@@ -253,7 +303,7 @@ class SQLiteDatabase:
         query = f"INSERT INTO Operator ({columns}) VALUES ({placeholders})"
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(data.values()))
             conn.commit()
@@ -284,7 +334,7 @@ class SQLiteDatabase:
             params = list(condition.values())
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute(query, params)
@@ -316,7 +366,7 @@ class SQLiteDatabase:
         query = f"DELETE FROM Operator WHERE " + " AND ".join(conditions)
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(condition.values()))
             conn.commit()
@@ -350,7 +400,7 @@ class SQLiteDatabase:
         query = f"INSERT INTO Customer ({columns}) VALUES ({placeholders})"
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(data.values()))
             conn.commit()
@@ -381,7 +431,7 @@ class SQLiteDatabase:
             params = list(condition.values())
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute(query, params)
@@ -413,7 +463,7 @@ class SQLiteDatabase:
         query = f"DELETE FROM Customer WHERE " + " AND ".join(conditions)
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(condition.values()))
             conn.commit()
@@ -447,7 +497,7 @@ class SQLiteDatabase:
         query = f"INSERT INTO StorageLocation ({columns}) VALUES ({placeholders})"
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(data.values()))
             conn.commit()
@@ -478,7 +528,7 @@ class SQLiteDatabase:
             params = list(condition.values())
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute(query, params)
@@ -510,7 +560,7 @@ class SQLiteDatabase:
         query = f"DELETE FROM StorageLocation WHERE " + " AND ".join(conditions)
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(condition.values()))
             conn.commit()
@@ -544,7 +594,7 @@ class SQLiteDatabase:
         query = f"INSERT INTO Medicine ({columns}) VALUES ({placeholders})"
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(data.values()))
             conn.commit()
@@ -575,7 +625,7 @@ class SQLiteDatabase:
             params = list(condition.values())
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute(query, params)
@@ -607,7 +657,7 @@ class SQLiteDatabase:
         query = f"DELETE FROM Medicine WHERE " + " AND ".join(conditions)
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(condition.values()))
             conn.commit()
@@ -641,7 +691,7 @@ class SQLiteDatabase:
         query = f"INSERT INTO Purchase ({columns}) VALUES ({placeholders})"
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(data.values()))
             conn.commit()
@@ -672,7 +722,7 @@ class SQLiteDatabase:
             params = list(condition.values())
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute(query, params)
@@ -704,7 +754,7 @@ class SQLiteDatabase:
         query = f"DELETE FROM Purchase WHERE " + " AND ".join(conditions)
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(condition.values()))
             conn.commit()
@@ -738,7 +788,7 @@ class SQLiteDatabase:
         query = f"INSERT INTO PurchaseItem ({columns}) VALUES ({placeholders})"
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(data.values()))
             conn.commit()
@@ -769,7 +819,7 @@ class SQLiteDatabase:
             params = list(condition.values())
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute(query, params)
@@ -801,7 +851,7 @@ class SQLiteDatabase:
         query = f"DELETE FROM PurchaseItem WHERE " + " AND ".join(conditions)
 
         try:
-            conn = sqlite3.connect(self.db_name)
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             cursor.execute(query, list(condition.values()))
             conn.commit()

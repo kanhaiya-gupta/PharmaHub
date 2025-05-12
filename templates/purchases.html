@@ -9,32 +9,32 @@
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="index.html">Medical Store</a>
+      <a class="navbar-brand" href="/">Medical Store</a>
     </div>
   </nav>
 
   <div class="container mt-4">
     <h2>Record a New Purchase</h2>
-    <form class="row g-3 mb-5">
+    <form class="row g-3 mb-5" action="/purchases/add" method="POST">
       <div class="col-md-6">
         <label class="form-label">Customer Name</label>
-        <input type="text" class="form-control">
+        <input type="text" name="customer_name" class="form-control" required>
       </div>
       <div class="col-md-6">
         <label class="form-label">Operator Name</label>
-        <input type="text" class="form-control">
+        <input type="text" name="operator_name" class="form-control" required>
       </div>
       <div class="col-md-6">
         <label class="form-label">Medicine Name</label>
-        <input type="text" class="form-control">
+        <input type="text" name="medicine_name" class="form-control" required>
       </div>
       <div class="col-md-3">
         <label class="form-label">Quantity</label>
-        <input type="number" class="form-control">
+        <input type="number" name="quantity" class="form-control" required>
       </div>
       <div class="col-md-3">
         <label class="form-label">Purchase Date</label>
-        <input type="date" class="form-control">
+        <input type="date" name="purchase_date" class="form-control" required>
       </div>
       <div class="col-12">
         <button type="submit" class="btn btn-success">Record Purchase</button>
@@ -53,13 +53,15 @@
         </tr>
       </thead>
       <tbody>
+        {% for purchase in purchases %}
         <tr>
-          <td>John Doe</td>
-          <td>Paracetamol</td>
-          <td>2</td>
-          <td>Operator A</td>
-          <td>2025-05-10</td>
+          <td>{{ purchase.customer }}</td>
+          <td>{{ purchase.medicine }}</td>
+          <td>{{ purchase.quantity }}</td>
+          <td>{{ purchase.operator }}</td>
+          <td>{{ purchase.date }}</td>
         </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>

@@ -9,24 +9,24 @@
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="index.html">Medical Store</a>
+      <a class="navbar-brand" href="/">Medical Store</a>
     </div>
   </nav>
 
   <div class="container mt-4">
     <h2>Add New Customer</h2>
-    <form class="row g-3 mb-4">
+    <form class="row g-3 mb-4" action="/customers/add" method="POST">
       <div class="col-md-6">
         <label class="form-label">Customer Name</label>
-        <input type="text" class="form-control" required>
+        <input type="text" name="name" class="form-control" required>
       </div>
       <div class="col-md-6">
         <label class="form-label">Contact Number</label>
-        <input type="text" class="form-control">
+        <input type="text" name="contact" class="form-control">
       </div>
       <div class="col-md-12">
         <label class="form-label">Address</label>
-        <textarea class="form-control" rows="2"></textarea>
+        <textarea name="address" class="form-control" rows="2"></textarea>
       </div>
       <div class="col-12">
         <button type="submit" class="btn btn-success">Save Customer</button>
@@ -43,11 +43,13 @@
         </tr>
       </thead>
       <tbody>
+        {% for customer in customers %}
         <tr>
-          <td>Priya Mehta</td>
-          <td>9123456780</td>
-          <td>22B, Green Avenue, Delhi</td>
+          <td>{{ customer.Name }}</td>
+          <td>{{ customer.ContactInfo }}</td>
+          <td>{{ customer.Address }}</td>
         </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>

@@ -9,28 +9,28 @@
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="index.html">Medical Store</a>
+      <a class="navbar-brand" href="/">Medical Store</a>
     </div>
   </nav>
 
   <div class="container mt-4">
     <h2>Add New Operator</h2>
-    <form class="row g-3 mb-4">
+    <form class="row g-3 mb-4" action="/operators/add" method="POST">
       <div class="col-md-6">
         <label class="form-label">Operator Name</label>
-        <input type="text" class="form-control" required>
+        <input type="text" name="name" class="form-control" required>
       </div>
       <div class="col-md-6">
         <label class="form-label">Role</label>
-        <input type="text" class="form-control">
+        <input type="text" name="role" class="form-control">
       </div>
       <div class="col-md-6">
         <label class="form-label">Contact Number</label>
-        <input type="text" class="form-control">
+        <input type="text" name="contact" class="form-control">
       </div>
       <div class="col-md-6">
         <label class="form-label">Email</label>
-        <input type="email" class="form-control">
+        <input type="email" name="email" class="form-control">
       </div>
       <div class="col-12">
         <button type="submit" class="btn btn-success">Save Operator</button>
@@ -48,12 +48,14 @@
         </tr>
       </thead>
       <tbody>
+        {% for operator in operators %}
         <tr>
-          <td>Amit Sharma</td>
-          <td>Pharmacist</td>
-          <td>9876543210</td>
-          <td>amit@example.com</td>
+          <td>{{ operator.Name }}</td>
+          <td>{{ operator.Role }}</td>
+          <td>{{ operator.ContactInfo }}</td>
+          <td>{{ operator.Email }}</td>
         </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>
