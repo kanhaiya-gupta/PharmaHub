@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}{{ store.StoreName }} - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Store Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>{{ store.StoreName }}</h1>
+            <p class="text-muted">
+                <i class="fas fa-map-marker-alt me-2"></i>{{ store.Address }}
+            </p>
+        </div>
+        <div>
+            <a href="/stores" class="btn btn-outline-primary me-2">
+                <i class="fas fa-arrow-left me-2"></i>Back to Stores
+            </a>
+            <a href="/data-manager/dashboard" class="btn btn-outline-primary">
+                <i class="fas fa-chart-line me-2"></i>Data Manager View
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-3">Store Overview</h2>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                <div class="col">
+                    <div class="card h-100 stats-card">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">
+                                <i class="fas fa-pills me-2"></i>Total Medicines
+                            </h5>
+                            <h2 class="card-text">{{ stats.total_medicines }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100 stats-card">
+                        <div class="card-body">
+                            <h5 class="card-title text-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Low Stock
+                            </h5>
+                            <h2 class="card-text">{{ stats.low_stock }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100 stats-card">
+                        <div class="card-body">
+                            <h5 class="card-title text-danger">
+                                <i class="fas fa-clock me-2"></i>Expiring Soon
+                            </h5>
+                            <h2 class="card-text">{{ stats.expiring_soon }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-3">Quick Actions</h2>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-pills me-2"></i>Medicines
+                            </h5>
+                            <p class="card-text">Manage medicine inventory and track stock levels.</p>
+                            <a href="/stores/{{ store.StoreID }}/medicines" class="btn btn-primary">Manage Medicines</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-users me-2"></i>Customers
+                            </h5>
+                            <p class="card-text">Manage customer information and purchase history.</p>
+                            <a href="/stores/{{ store.StoreID }}/customers" class="btn btn-primary">Manage Customers</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-user-tie me-2"></i>Operators
+                            </h5>
+                            <p class="card-text">Manage store operators and their access levels.</p>
+                            <a href="/stores/{{ store.StoreID }}/operators" class="btn btn-primary">Manage Operators</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-shopping-cart me-2"></i>Purchases
+                            </h5>
+                            <p class="card-text">Record and track customer purchases and sales.</p>
+                            <a href="/stores/{{ store.StoreID }}/purchases" class="btn btn-primary">View Purchases</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Store Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Store Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>License Number:</strong> {{ store.LicenseNumber }}</p>
+                            <p><strong>Contact Number:</strong> {{ store.ContactNumber }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Opening Date:</strong> {{ store.OpeningDate }}</p>
+                            <p><strong>Status:</strong> 
+                                {% if store.IsActive %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for activity in recent_activity %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ activity.title }}</h6>
+                                <small class="text-muted">{{ activity.timestamp }}</small>
+                            </div>
+                            <p class="mb-1">{{ activity.description }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

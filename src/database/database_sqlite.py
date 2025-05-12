@@ -49,57 +49,68 @@ class SQLiteDatabase:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            # Create MedicalStore table
+            # Create Store table
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS MedicalStore (
+                CREATE TABLE IF NOT EXISTS Store (
                     StoreID INTEGER PRIMARY KEY AUTOINCREMENT,
-                    StoreName TEXT NOT NULL,
+                    StoreName TEXT NOT NULL UNIQUE,
                     Address TEXT NOT NULL,
                     ContactNumber TEXT,
                     LicenseNumber TEXT NOT NULL,
-                    OpeningDate TEXT
+                    OpeningDate TEXT,
+                    IsActive BOOLEAN DEFAULT 1,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
 
-            # Create Operator table
+            # Create Operator table with store reference
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS Operator (
                     OperatorID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    StoreID INTEGER NOT NULL,
                     Name TEXT NOT NULL,
                     ContactInfo TEXT,
                     Role TEXT,
                     Email TEXT,
-                    AssignedStoreID INTEGER,
-                    FOREIGN KEY (AssignedStoreID) REFERENCES MedicalStore(StoreID)
+                    IsAdmin BOOLEAN DEFAULT 0,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (StoreID) REFERENCES Store(StoreID)
                 )
             ''')
 
-            # Create Customer table
+            # Create Customer table with store reference
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS Customer (
                     CustomerID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    StoreID INTEGER NOT NULL,
                     Name TEXT NOT NULL,
                     ContactInfo TEXT,
                     Age INTEGER,
                     Gender TEXT,
-                    Address TEXT
+                    Address TEXT,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (StoreID) REFERENCES Store(StoreID)
                 )
             ''')
 
-            # Create StorageLocation table
+            # Create StorageLocation table with store reference
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS StorageLocation (
                     StorageLocationID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    StoreID INTEGER NOT NULL,
                     Label TEXT NOT NULL,
                     IsTemperatureControlled BOOLEAN,
-                    Notes TEXT
+                    Notes TEXT,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (StoreID) REFERENCES Store(StoreID)
                 )
             ''')
 
-            # Create Batch table
+            # Create Batch table with store reference
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS Batch (
                     BatchID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    StoreID INTEGER NOT NULL,
                     InvoiceNumber TEXT NOT NULL,
                     Supplier TEXT NOT NULL,
                     BatchNumber TEXT NOT NULL,
@@ -107,7 +118,9 @@ class SQLiteDatabase:
                     ExpiryDate DATE NOT NULL,
                     StorageLocation TEXT NOT NULL,
                     DateReceived DATE DEFAULT CURRENT_TIMESTAMP,
-                    Barcode TEXT UNIQUE
+                    Barcode TEXT UNIQUE,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (StoreID) REFERENCES Store(StoreID)
                 )
             ''')
 
@@ -118,15 +131,17 @@ class SQLiteDatabase:
                     BatchID INTEGER NOT NULL,
                     MedicineID INTEGER NOT NULL,
                     Quantity INTEGER NOT NULL,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (BatchID) REFERENCES Batch(BatchID),
                     FOREIGN KEY (MedicineID) REFERENCES Medicine(MedicineID)
                 )
             ''')
 
-            # Create Medicine table
+            # Create Medicine table with store reference
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS Medicine (
                     MedicineID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    StoreID INTEGER NOT NULL,
                     Name TEXT NOT NULL,
                     Brand TEXT,
                     BatchNumber TEXT,
@@ -139,18 +154,23 @@ class SQLiteDatabase:
                     DateAdded TEXT,
                     StorageLocationID INTEGER,
                     Barcode TEXT UNIQUE,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (StoreID) REFERENCES Store(StoreID),
                     FOREIGN KEY (StorageLocationID) REFERENCES StorageLocation(StorageLocationID)
                 )
             ''')
 
-            # Create Purchase table
+            # Create Purchase table with store reference
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS Purchase (
                     PurchaseID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    StoreID INTEGER NOT NULL,
                     CustomerID INTEGER,
                     OperatorID INTEGER,
                     DateOfPurchase DATE,
                     TotalAmount REAL NOT NULL,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (StoreID) REFERENCES Store(StoreID),
                     FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID),
                     FOREIGN KEY (OperatorID) REFERENCES Operator(OperatorID)
                 )
@@ -164,44 +184,54 @@ class SQLiteDatabase:
                     MedicineID INTEGER,
                     Quantity INTEGER NOT NULL,
                     PricePerUnit REAL NOT NULL,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (PurchaseID) REFERENCES Purchase(PurchaseID),
                     FOREIGN KEY (MedicineID) REFERENCES Medicine(MedicineID)
                 )
             ''')
 
-            # Create Prescription table
+            # Create Prescription table with store reference
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS Prescription (
                     PrescriptionID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    StoreID INTEGER NOT NULL,
                     CustomerID INTEGER,
                     DoctorName TEXT,
                     IssueDate DATE,
                     ExpiryDate DATE,
                     Status TEXT,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (StoreID) REFERENCES Store(StoreID),
                     FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
                 )
             ''')
 
-            # Create Insurance table
+            # Create Insurance table with store reference
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS Insurance (
                     InsuranceID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    StoreID INTEGER NOT NULL,
                     CustomerID INTEGER,
                     Provider TEXT,
                     PolicyNumber TEXT,
                     CoverageDetails TEXT,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (StoreID) REFERENCES Store(StoreID),
                     FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
                 )
             ''')
 
-            # Create InventoryAlert table
+            # Create InventoryAlert table with store reference
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS InventoryAlert (
                     AlertID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    StoreID INTEGER NOT NULL,
                     MedicineID INTEGER,
                     AlertType TEXT,
                     Threshold INTEGER,
                     Status TEXT,
+                    CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (StoreID) REFERENCES Store(StoreID),
                     FOREIGN KEY (MedicineID) REFERENCES Medicine(MedicineID)
                 )
             ''')
@@ -211,6 +241,107 @@ class SQLiteDatabase:
         except sqlite3.Error as e:
             self.logger.error(f"Error creating schema: {e}")
             raise
+        finally:
+            conn.close()
+
+    # Store methods
+    def insert_store(self, data: Dict[str, Any]) -> Optional[int]:
+        """Insert a new store record."""
+        self.logger.info("Inserting record into Store")
+        required_fields = {'StoreName', 'Address', 'LicenseNumber'}
+        if not required_fields.issubset(data):
+            self.logger.error(f"Missing required fields: {required_fields - set(data)}")
+            raise ValueError(f"Missing required fields: {required_fields - set(data)}")
+
+        columns = ', '.join(data.keys())
+        placeholders = ', '.join(['?' for _ in data])
+        query = f"INSERT INTO Store ({columns}) VALUES ({placeholders})"
+
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute(query, list(data.values()))
+            conn.commit()
+            record_id = cursor.lastrowid
+            self.logger.info(f"Successfully inserted record into Store, ID: {record_id}")
+            return record_id
+        except sqlite3.Error as e:
+            self.logger.error(f"Error inserting into Store: {e}")
+            return None
+        finally:
+            conn.close()
+
+    def get_store(self, condition: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """Get store records."""
+        self.logger.info("Retrieving records from Store")
+        query = "SELECT * FROM Store"
+        params = []
+        if condition:
+            conditions = [f"{key} = ?" for key in condition.keys()]
+            query += " WHERE " + " AND ".join(conditions)
+            params = list(condition.values())
+
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            results = [dict(row) for row in rows]
+            self.logger.info(f"Retrieved {len(results)} records from Store")
+            return results
+        except sqlite3.Error as e:
+            self.logger.error(f"Error retrieving from Store: {e}")
+            return []
+        finally:
+            conn.close()
+
+    def update_store(self, condition: Dict[str, Any], data: Dict[str, Any]) -> int:
+        """Update store records."""
+        self.logger.info("Updating records in Store")
+        if not condition:
+            self.logger.error("Condition dictionary cannot be empty")
+            raise ValueError("Condition dictionary cannot be empty")
+
+        set_clause = ', '.join([f"{key} = ?" for key in data.keys()])
+        where_clause = ' AND '.join([f"{key} = ?" for key in condition.keys()])
+        query = f"UPDATE Store SET {set_clause} WHERE {where_clause}"
+
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute(query, list(data.values()) + list(condition.values()))
+            conn.commit()
+            row_count = cursor.rowcount
+            self.logger.info(f"Updated {row_count} records in Store")
+            return row_count
+        except sqlite3.Error as e:
+            self.logger.error(f"Error updating Store: {e}")
+            return 0
+        finally:
+            conn.close()
+
+    def delete_store(self, condition: Dict[str, Any]) -> int:
+        """Delete store records."""
+        self.logger.info("Deleting records from Store")
+        if not condition:
+            self.logger.error("Condition dictionary cannot be empty")
+            raise ValueError("Condition dictionary cannot be empty")
+
+        conditions = [f"{key} = ?" for key in condition.keys()]
+        query = f"DELETE FROM Store WHERE " + " AND ".join(conditions)
+
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute(query, list(condition.values()))
+            conn.commit()
+            row_count = cursor.rowcount
+            self.logger.info(f"Deleted {row_count} records from Store")
+            return row_count
+        except sqlite3.Error as e:
+            self.logger.error(f"Error deleting from Store: {e}")
+            return 0
         finally:
             conn.close()
 
@@ -636,22 +767,23 @@ class SQLiteDatabase:
         finally:
             conn.close()
 
-    def get_medicine(self, condition: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        """Retrieve records from the Medicine table.
-
-        Args:
-            condition: Dictionary with column names and values to filter (optional).
-
-        Returns:
-            List of dictionaries containing the matching records.
-        """
+    def get_medicine(self, store_id: Optional[int] = None, condition: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """Get medicine records with optional store filtering."""
         self.logger.info("Retrieving records from Medicine")
         query = "SELECT * FROM Medicine"
         params = []
+        conditions = []
+
+        if store_id is not None:
+            conditions.append("StoreID = ?")
+            params.append(store_id)
+
         if condition:
-            conditions = [f"{key} = ?" for key in condition.keys()]
+            conditions.extend([f"{key} = ?" for key in condition.keys()])
+            params.extend(list(condition.values()))
+
+        if conditions:
             query += " WHERE " + " AND ".join(conditions)
-            params = list(condition.values())
 
         try:
             conn = sqlite3.connect(self.db_path)

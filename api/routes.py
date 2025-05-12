@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Form, HTTPException, Depends
+from fastapi import APIRouter, Request, Form, HTTPException, Depends, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from src.database.database_sqlite import SQLiteDatabase
@@ -46,9 +46,11 @@ def get_dashboard_stats(db: SQLiteDatabase):
 @router.get("/", response_class=HTMLResponse)
 async def read_root(request: Request, db: SQLiteDatabase = Depends(get_db)):
     stats = get_dashboard_stats(db)
+    stores = db.get_store()
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "stats": stats
+        "stats": stats,
+        "stores": stores
     })
 
 @router.get("/medicines", response_class=HTMLResponse)
@@ -307,4 +309,236 @@ async def add_purchase(
         else:
             raise HTTPException(status_code=400, detail="Failed to record purchase")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Store Management Routes
+@router.get("/stores", response_class=HTMLResponse)
+async def list_stores(request: Request, db: SQLiteDatabase = Depends(get_db)):
+    stores = db.get_store()
+    return templates.TemplateResponse("stores.html", {
+        "request": request,
+        "stores": stores
+    })
+
+@router.post("/stores/add")
+async def add_store(
+    store_name: str = Form(...),
+    address: str = Form(...),
+    contact_number: str = Form(...),
+    license_number: str = Form(...),
+    db: SQLiteDatabase = Depends(get_db)
+):
+    try:
+        store_data = {
+            "StoreName": store_name,
+            "Address": address,
+            "ContactNumber": contact_number,
+            "LicenseNumber": license_number,
+            "OpeningDate": datetime.now().strftime("%Y-%m-%d")
+        }
+        store_id = db.insert_store(store_data)
+        if store_id:
+            return RedirectResponse(url="/stores", status_code=303)
+        else:
+            raise HTTPException(status_code=400, detail="Failed to add store")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/stores/{store_id}", response_class=HTMLResponse)
+async def get_store_dashboard(
+    request: Request,
+    store_id: int,
+    db: SQLiteDatabase = Depends(get_db)
+):
+    store = db.get_store({"StoreID": store_id})
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    store = store[0]
+    stats = get_dashboard_stats(db)
+    
+    return templates.TemplateResponse("store_dashboard.html", {
+        "request": request,
+        "store": store,
+        "stats": stats
+    })
+
+# Store-specific routes
+@router.get("/stores/{store_id}/medicines", response_class=HTMLResponse)
+async def get_store_medicines(
+    request: Request,
+    store_id: int,
+    db: SQLiteDatabase = Depends(get_db)
+):
+    medicines = db.get_medicine(store_id=store_id)
+    return templates.TemplateResponse("medicines.html", {
+        "request": request,
+        "medicines": medicines,
+        "store_id": store_id
+    })
+
+@router.get("/stores/{store_id}/customers", response_class=HTMLResponse)
+async def get_store_customers(
+    request: Request,
+    store_id: int,
+    db: SQLiteDatabase = Depends(get_db)
+):
+    customers = db.get_customer({"StoreID": store_id})
+    return templates.TemplateResponse("customers.html", {
+        "request": request,
+        "customers": customers,
+        "store_id": store_id
+    })
+
+@router.get("/stores/{store_id}/operators", response_class=HTMLResponse)
+async def get_store_operators(
+    request: Request,
+    store_id: int,
+    db: SQLiteDatabase = Depends(get_db)
+):
+    operators = db.get_operator({"StoreID": store_id})
+    return templates.TemplateResponse("operators.html", {
+        "request": request,
+        "operators": operators,
+        "store_id": store_id
+    })
+
+@router.get("/stores/{store_id}/purchases", response_class=HTMLResponse)
+async def get_store_purchases(
+    request: Request,
+    store_id: int,
+    db: SQLiteDatabase = Depends(get_db)
+):
+    purchases = db.get_purchase({"StoreID": store_id})
+    purchase_items = db.get_purchase_item()
+    
+    # Combine purchase data with related information
+    purchase_details = []
+    for purchase in purchases:
+        # Get customer name
+        customer = db.get_customer({"CustomerID": purchase["CustomerID"]})
+        customer_name = customer[0]["Name"] if customer else "Unknown"
+        
+        # Get operator name
+        operator = db.get_operator({"OperatorID": purchase["OperatorID"]})
+        operator_name = operator[0]["Name"] if operator else "Unknown"
+        
+        # Get medicine details from purchase items
+        items = [item for item in purchase_items if item["PurchaseID"] == purchase["PurchaseID"]]
+        for item in items:
+            medicine = db.get_medicine(store_id=store_id, condition={"MedicineID": item["MedicineID"]})
+            medicine_name = medicine[0]["Name"] if medicine else "Unknown"
+            
+            purchase_details.append({
+                "customer": customer_name,
+                "medicine": medicine_name,
+                "quantity": item["Quantity"],
+                "operator": operator_name,
+                "date": purchase["DateOfPurchase"]
+            })
+    
+    return templates.TemplateResponse("purchases.html", {
+        "request": request,
+        "purchases": purchase_details,
+        "store_id": store_id
+    })
+
+# Update existing routes to include store_id
+@router.post("/stores/{store_id}/medicines/add")
+async def add_medicine(
+    store_id: int,
+    name: str = Form(...),
+    brand: str = Form(...),
+    batch_number: str = Form(...),
+    expiry_date: str = Form(...),
+    price: float = Form(...),
+    stock_quantity: int = Form(...),
+    type: str = Form(...),
+    requires_prescription: str = Form(...),
+    schedule_category: str = Form(...),
+    storage_location: str = Form(...),
+    db: SQLiteDatabase = Depends(get_db)
+):
+    try:
+        # First, get or create storage location
+        storage_data = {
+            "StoreID": store_id,
+            "Label": storage_location
+        }
+        storage_id = db.insert_storage_location(storage_data)
+        
+        # Prepare medicine data
+        medicine_data = {
+            "StoreID": store_id,
+            "Name": name,
+            "Brand": brand,
+            "BatchNumber": batch_number,
+            "ExpiryDate": expiry_date,
+            "Price": price,
+            "StockQuantity": stock_quantity,
+            "Type": type,
+            "RequiresPrescription": requires_prescription == "Yes",
+            "ScheduleCategory": schedule_category,
+            "DateAdded": datetime.now().strftime("%Y-%m-%d"),
+            "StorageLocationID": storage_id
+        }
+        
+        # Insert medicine
+        medicine_id = db.insert_medicine(medicine_data)
+        if medicine_id:
+            return RedirectResponse(url=f"/stores/{store_id}/medicines", status_code=303)
+        else:
+            raise HTTPException(status_code=400, detail="Failed to add medicine")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Similar updates for other routes...
+
+# Data Manager Routes (Access to all stores)
+@router.get("/data-manager/dashboard", response_class=HTMLResponse)
+async def data_manager_dashboard(request: Request, db: SQLiteDatabase = Depends(get_db)):
+    stores = db.get_store()
+    all_stats = {}
+    
+    for store in stores:
+        all_stats[store["StoreID"]] = get_dashboard_stats(db)
+    
+    return templates.TemplateResponse("data_manager_dashboard.html", {
+        "request": request,
+        "stores": stores,
+        "all_stats": all_stats
+    })
+
+@router.get("/data-manager/stores/{store_id}/inventory", response_class=HTMLResponse)
+async def view_store_inventory(
+    request: Request,
+    store_id: int,
+    db: SQLiteDatabase = Depends(get_db)
+):
+    store = db.get_store({"StoreID": store_id})
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    medicines = db.get_medicine(store_id=store_id)
+    return templates.TemplateResponse("store_inventory.html", {
+        "request": request,
+        "store": store[0],
+        "medicines": medicines
+    })
+
+@router.get("/data-manager/stores/{store_id}/sales", response_class=HTMLResponse)
+async def view_store_sales(
+    request: Request,
+    store_id: int,
+    db: SQLiteDatabase = Depends(get_db)
+):
+    store = db.get_store({"StoreID": store_id})
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    
+    purchases = db.get_purchase({"StoreID": store_id})
+    return templates.TemplateResponse("store_sales.html", {
+        "request": request,
+        "store": store[0],
+        "purchases": purchases
+    }) 

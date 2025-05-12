@@ -1,22 +1,22 @@
 # main.py
 """Main entry point for running the FastAPI server and generating QR codes."""
 
-import logging
 import os
 import socket
 import sys
+from datetime import datetime
 
 import qrcode
 import uvicorn
+from src.utils.loggers import LoggerFactory
 
 # Add the current directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), ".")))
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+# Set up logger
+base_dir = os.path.abspath(os.path.dirname(__file__))
+log_dir = os.path.join(base_dir, "results", "logs")
+logger = LoggerFactory("MainLogger", log_dir, "main").get_logger()
 
 def get_local_ip() -> str:
     """Detect the local IP address of the system.
@@ -57,6 +57,20 @@ def generate_qr_code(url: str, filename: str = "static/server_qr.png") -> None:
     except Exception as e:
         logger.error(f"Failed to generate QR code: {e}")
 
+def initialize_database():
+    """Initialize the database with required data."""
+    try:
+        from src.init_db import init_database
+        if init_database():
+            logger.info("Database initialized successfully")
+            return True
+        else:
+            logger.error("Failed to initialize database")
+            return False
+    except Exception as e:
+        logger.error(f"Error during database initialization: {e}")
+        return False
+
 if __name__ == "__main__":
     host = "0.0.0.0"
     port = 8000
@@ -73,7 +87,14 @@ if __name__ == "__main__":
         logger.error("Invalid mode. Use 'local' or 'remote'.")
         sys.exit(1)
 
-    if mode == "remote":
+    # Initialize database for both modes
+    if not initialize_database():
+        logger.error("Failed to initialize database. Exiting...")
+        sys.exit(1)
+
+    if mode == "local":
+        logger.info(f"Starting server for local access on http://{host}:{port}")
+    else:
         local_ip = get_local_ip()
         server_url = f"http://{local_ip}:{port}"
         logger.info(f"Starting server for remote access on {server_url}")
@@ -86,8 +107,6 @@ if __name__ == "__main__":
         logger.info(
             f"Scan the QR code in 'static/server_qr.png' with your phone to access the server"
         )
-    else:
-        logger.info(f"Starting server for local access on http://{host}:{port}")
 
     try:
         uvicorn.run("api.api:app", host=host, port=port, reload=reload)

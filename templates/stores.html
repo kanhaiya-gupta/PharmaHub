@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Medical Stores Management{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Medical Stores</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStoreModal">
+            <i class="fas fa-plus me-2"></i>Add New Store
+        </button>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for store in stores %}
+        <div class="col">
+            <div class="card h-100 store-card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ store.StoreName }}</h5>
+                    <p class="card-text text-muted">
+                        <i class="fas fa-map-marker-alt me-2"></i>{{ store.Address }}
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-phone me-2"></i>{{ store.ContactNumber }}
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-id-card me-2"></i>License: {{ store.LicenseNumber }}
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-calendar me-2"></i>Opened: {{ store.OpeningDate }}
+                    </p>
+                    <div class="d-grid gap-2">
+                        <a href="/stores/{{ store.StoreID }}" class="btn btn-primary">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a href="/stores/{{ store.StoreID }}/inventory" class="btn btn-outline-primary">
+                            <i class="fas fa-boxes me-2"></i>Inventory
+                        </a>
+                        <a href="/stores/{{ store.StoreID }}/sales" class="btn btn-outline-primary">
+                            <i class="fas fa-chart-line me-2"></i>Sales
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Add Store Modal -->
+<div class="modal fade" id="addStoreModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Store</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/stores/add" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="store_name" class="form-label">Store Name</label>
+                        <input type="text" class="form-control" id="store_name" name="store_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact_number" class="form-label">Contact Number</label>
+                        <input type="tel" class="form-control" id="contact_number" name="contact_number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="license_number" class="form-label">License Number</label>
+                        <input type="text" class="form-control" id="license_number" name="license_number" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add Store</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 
