@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Medicines</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">Medical Store</a>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    <h2>Add New Medicine</h2>
+    <form class="row g-3 mb-4">
+      <div class="col-md-6">
+        <label class="form-label">Medicine Name</label>
+        <input type="text" class="form-control" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Brand</label>
+        <input type="text" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Batch Number</label>
+        <input type="text" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Expiry Date</label>
+        <input type="date" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Storage Location</label>
+        <input type="text" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Type</label>
+        <input type="text" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Price (per unit)</label>
+        <input type="number" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Stock Quantity</label>
+        <input type="number" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Schedule Category</label>
+        <input type="text" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Prescription Required</label>
+        <select class="form-select">
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-success">Save Medicine</button>
+      </div>
+    </form>
+
+    <h2>Current Inventory</h2>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Brand</th>
+          <th>Stock</th>
+          <th>Location</th>
+          <th>Expiry</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Paracetamol</td>
+          <td>MedLife</td>
+          <td>150</td>
+          <td>Shelf A1</td>
+          <td>2025-12-01</td>
+          <td><button class="btn btn-sm btn-outline-primary">Edit</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
