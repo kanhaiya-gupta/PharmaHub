@@ -2,52 +2,127 @@
 
 {% block title %}Data Manager Dashboard{% endblock %}
 
+{% block description %}PharmaHub Data Manager Dashboard - Monitor and manage your medical stores{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Data Manager Dashboard</h1>
         <div>
-            <h1>Data Manager Dashboard</h1>
-            <p class="text-muted">Overview of all medical stores and their performance</p>
+            <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#generateReportModal">
+                <i class="fas fa-file-export me-2"></i>Generate Report
+            </button>
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#syncDataModal">
+                <i class="fas fa-sync me-2"></i>Sync Data
+            </button>
         </div>
-        <a href="/stores" class="btn btn-primary">
-            <i class="fas fa-store me-2"></i>Manage Stores
-        </a>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Stores</h5>
+                    <h2 class="card-text">{{ statistics.total_stores }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Medicines</h5>
+                    <h2 class="card-text">{{ statistics.total_medicines }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Customers</h5>
+                    <h2 class="card-text">{{ statistics.total_customers }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Sales</h5>
+                    <h2 class="card-text">${{ statistics.total_sales }}</h2>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- System Overview -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="mb-3">System Overview</h2>
-            <div class="row row-cols-1 row-cols-md-3 g-4">
-                <div class="col">
-                    <div class="card h-100 stats-card">
-                        <div class="card-body">
-                            <h5 class="card-title text-primary">
-                                <i class="fas fa-store me-2"></i>Total Stores
-                            </h5>
-                            <h2 class="card-text">{{ stats.total_stores }}</h2>
-                        </div>
+    <div class="row">
+        <!-- Recent Purchases -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Recent Purchases</h5>
+                    <a href="/purchases" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Store</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for purchase in recent_purchases %}
+                                <tr>
+                                    <td>{{ purchase.PurchaseID }}</td>
+                                    <td>{{ purchase.DateOfPurchase }}</td>
+                                    <td>{{ purchase.StoreName }}</td>
+                                    <td>${{ purchase.TotalAmount }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="col">
-                    <div class="card h-100 stats-card">
-                        <div class="card-body">
-                            <h5 class="card-title text-success">
-                                <i class="fas fa-pills me-2"></i>Total Medicines
-                            </h5>
-                            <h2 class="card-text">{{ stats.total_medicines }}</h2>
-                        </div>
-                    </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Medicines -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Low Stock Medicines</h5>
+                    <a href="/medicines/low-stock" class="btn btn-sm btn-outline-primary">View All</a>
                 </div>
-                <div class="col">
-                    <div class="card h-100 stats-card">
-                        <div class="card-body">
-                            <h5 class="card-title text-info">
-                                <i class="fas fa-users me-2"></i>Total Customers
-                            </h5>
-                            <h2 class="card-text">{{ stats.total_customers }}</h2>
-                        </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Stock</th>
+                                    <th>Store</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for medicine in low_stock_medicines %}
+                                <tr>
+                                    <td>{{ medicine.Name }}</td>
+                                    <td>{{ medicine.StockQuantity }}</td>
+                                    <td>{{ medicine.StoreName }}</td>
+                                    <td>
+                                        {% if medicine.StockQuantity <= 5 %}
+                                        <span class="badge bg-danger">Critical</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Low</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -55,122 +130,51 @@
     </div>
 
     <!-- Store Performance -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="mb-3">Store Performance</h2>
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                {% for store in stores %}
-                <div class="col">
-                    <div class="card h-100 store-card">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ store.StoreName }}</h5>
-                            <p class="card-text text-muted">
-                                <i class="fas fa-map-marker-alt me-2"></i>{{ store.Address }}
-                            </p>
-                            <div class="row g-2 mb-3">
-                                <div class="col-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body p-2">
-                                            <small class="text-muted">Medicines</small>
-                                            <h6 class="mb-0">{{ store.stats.total_medicines }}</h6>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body p-2">
-                                            <small class="text-muted">Low Stock</small>
-                                            <h6 class="mb-0">{{ store.stats.low_stock }}</h6>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body p-2">
-                                            <small class="text-muted">Expiring</small>
-                                            <h6 class="mb-0">{{ store.stats.expiring_soon }}</h6>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body p-2">
-                                            <small class="text-muted">Sales</small>
-                                            <h6 class="mb-0">{{ store.stats.total_sales }}</h6>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="d-grid gap-2">
-                                <a href="/stores/{{ store.StoreID }}" class="btn btn-primary">
-                                    <i class="fas fa-tachometer-alt me-2"></i>Store Dashboard
-                                </a>
-                                <a href="/data-manager/stores/{{ store.StoreID }}/inventory" class="btn btn-outline-primary">
-                                    <i class="fas fa-boxes me-2"></i>Inventory
-                                </a>
-                                <a href="/data-manager/stores/{{ store.StoreID }}/sales" class="btn btn-outline-primary">
-                                    <i class="fas fa-chart-line me-2"></i>Sales Data
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
     <div class="row">
-        <div class="col-12">
-            <h2 class="mb-3">Quick Actions</h2>
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                <i class="fas fa-store me-2"></i>Manage Stores
-                            </h5>
-                            <p class="card-text">Add, edit, or view details of medical stores.</p>
-                            <a href="/stores" class="btn btn-primary">Manage Stores</a>
-                        </div>
-                    </div>
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Store Performance</h5>
                 </div>
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                <i class="fas fa-chart-bar me-2"></i>Analytics
-                            </h5>
-                            <p class="card-text">View comprehensive analytics and reports.</p>
-                            <a href="/data-manager/analytics" class="btn btn-primary">View Analytics</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                <i class="fas fa-file-export me-2"></i>Reports
-                            </h5>
-                            <p class="card-text">Generate and export detailed reports.</p>
-                            <a href="/data-manager/reports" class="btn btn-primary">Generate Reports</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                <i class="fas fa-cog me-2"></i>Settings
-                            </h5>
-                            <p class="card-text">Configure system settings and preferences.</p>
-                            <a href="/data-manager/settings" class="btn btn-primary">Manage Settings</a>
-                        </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Store</th>
+                                    <th>Total Sales</th>
+                                    <th>Total Customers</th>
+                                    <th>Total Medicines</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for store in store_performance %}
+                                <tr>
+                                    <td>{{ store.StoreName }}</td>
+                                    <td>${{ store.TotalSales }}</td>
+                                    <td>{{ store.TotalCustomers }}</td>
+                                    <td>{{ store.TotalMedicines }}</td>
+                                    <td>
+                                        {% if store.IsActive %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add any JavaScript for charts or interactive features here
+</script>
 {% endblock %} 

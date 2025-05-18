@@ -174,3 +174,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+static/images/qrcodes/*
+
+notebook/.ipynb_checkpoints/*

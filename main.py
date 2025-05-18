@@ -32,10 +32,9 @@ def get_local_ip() -> str:
         logger.warning(f"Could not detect local IP: {e}. Falling back to 127.0.0.1")
         return "127.0.0.1"
 
-def generate_qr_code(url: str, filename: str = "static/server_qr.png") -> None:
-    """Generate a QR code for the given URL."""
+def generate_qr_code(url: str, filename: str):
+    """Generate a QR code for the given URL and save it to the specified filename."""
     try:
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -44,11 +43,13 @@ def generate_qr_code(url: str, filename: str = "static/server_qr.png") -> None:
         )
         qr.add_data(url)
         qr.make(fit=True)
+        
         img = qr.make_image(fill_color="black", back_color="white")
         img.save(filename)
-        logger.info(f"QR code generated and saved as '{filename}'")
+        logger.info(f"QR code saved to {filename}")
     except Exception as e:
-        logger.error(f"Failed to generate QR code: {e}")
+        logger.error(f"Error generating QR code: {e}")
+        raise
 
 def initialize_database():
     """Initialize the database with required data."""
@@ -102,8 +103,28 @@ def run_server_mode(host: str, port: int):
             logger.error("Failed to initialize main database")
             sys.exit(1)
 
+        # Generate QR codes for each store
+        from src.database.database_sqlite import SQLiteDatabase
+        db = SQLiteDatabase('medical_store.db')
+        stores = db.get_store()
+        
+        # Create qrcodes directory if it doesn't exist
+        qr_dir = os.path.join(base_dir, "static", "images", "qrcodes")
+        os.makedirs(qr_dir, exist_ok=True)
+        
+        # Get the actual IP address to use in QR codes
+        server_ip = get_local_ip()
+        server_url = f"http://{server_ip}:{port}"
+        
+        # Generate QR code for each store
+        for store in stores:
+            store_url = f"{server_url}/stores/{store['StoreID']}"
+            qr_filename = os.path.join(qr_dir, f"store_{store['StoreID']}_qr.png")
+            generate_qr_code(store_url, qr_filename)
+            logger.info(f"Generated QR code for store {store['StoreID']}: {store['StoreName']}")
+
         # Start the main server
-        logger.info(f"Starting main server on http://{host}:{port}")
+        logger.info(f"Starting main server on {server_url}")
         uvicorn.run("api.api:app", host=host, port=port, reload=True)
 
     except Exception as e:
@@ -118,10 +139,30 @@ def run_dev_mode():
             logger.error("Failed to initialize database")
             sys.exit(1)
 
+        # Generate QR codes for each store
+        from src.database.database_sqlite import SQLiteDatabase
+        db = SQLiteDatabase('medical_store.db')
+        stores = db.get_store()
+        
+        # Create qrcodes directory if it doesn't exist
+        qr_dir = os.path.join(base_dir, "static", "images", "qrcodes")
+        os.makedirs(qr_dir, exist_ok=True)
+        
+        # Get the actual IP address to use in QR codes
+        server_ip = get_local_ip()
+        server_url = f"http://{server_ip}:8000"
+        
+        # Generate QR code for each store
+        for store in stores:
+            store_url = f"{server_url}/stores/{store['StoreID']}"
+            qr_filename = os.path.join(qr_dir, f"store_{store['StoreID']}_qr.png")
+            generate_qr_code(store_url, qr_filename)
+            logger.info(f"Generated QR code for store {store['StoreID']}: {store['StoreName']}")
+
         # Start the development server
-        host = "127.0.0.1"
+        host = "0.0.0.0"
         port = 8000
-        logger.info(f"Starting development server on http://{host}:{port}")
+        logger.info(f"Starting development server on http://{server_ip}:{port}")
         uvicorn.run("api.api:app", host=host, port=port, reload=True)
 
     except Exception as e:

@@ -59,13 +59,39 @@ async def get_store_dashboard(
     total_medicines = len(medicines)
     low_stock = len([m for m in medicines if m['StockQuantity'] < 10])
     
-    return templates.TemplateResponse("store_dashboard.html", {
+    # Get recent purchases
+    purchases = db.get_purchase({"StoreID": store_id})
+    recent_purchases = sorted(purchases, key=lambda x: x.get('DateOfPurchase', ''), reverse=True)[:5]
+    
+    # Calculate store statistics
+    total_sales = sum(p.get('TotalAmount', 0) for p in purchases)
+    total_customers = len(db.get_customer({"StoreID": store_id}))
+    
+    # Calculate profit
+    total_profit = 0
+    for purchase in purchases:
+        purchase_items = db.get_purchase_item({"PurchaseID": purchase["PurchaseID"]})
+        for item in purchase_items:
+            medicine = db.get_medicine({"MedicineID": item["MedicineID"]})
+            if medicine:
+                medicine = medicine[0]
+                cost_price = medicine.get('CostPrice', 0)
+                selling_price = medicine.get('Price', 0)
+                profit = (selling_price - cost_price) * item["Quantity"]
+                total_profit += profit
+    
+    store_stats = {
+        "total_sales": total_sales,
+        "total_profit": total_profit,
+        "total_customers": total_customers,
+        "total_medicines": total_medicines
+    }
+    
+    return templates.TemplateResponse("stores.html", {
         "request": request,
         "store": store[0],
-        "stats": {
-            "total_medicines": total_medicines,
-            "low_stock": low_stock
-        }
+        "store_stats": store_stats,
+        "recent_activities": recent_purchases
     })
 
 @router.get("/{store_id}/medicines", response_class=HTMLResponse)
@@ -74,11 +100,15 @@ async def get_store_medicines(
     store_id: int,
     db: SQLiteDatabase = Depends(get_db)
 ):
+    store = db.get_store({"StoreID": store_id})
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+        
     medicines = db.get_medicine({"StoreID": store_id})
     return templates.TemplateResponse("store_medicines.html", {
         "request": request,
         "medicines": medicines,
-        "store_id": store_id
+        "store": store[0]
     })
 
 @router.get("/{store_id}/customers", response_class=HTMLResponse)
@@ -87,11 +117,14 @@ async def get_store_customers(
     store_id: int,
     db: SQLiteDatabase = Depends(get_db)
 ):
+    store = db.get_store({"StoreID": store_id})
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
     customers = db.get_customer({"StoreID": store_id})
     return templates.TemplateResponse("store_customers.html", {
         "request": request,
         "customers": customers,
-        "store_id": store_id
+        "store": store[0]
     })
 
 @router.get("/{store_id}/operators", response_class=HTMLResponse)
@@ -100,11 +133,15 @@ async def get_store_operators(
     store_id: int,
     db: SQLiteDatabase = Depends(get_db)
 ):
+    store = db.get_store({"StoreID": store_id})
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+        
     operators = db.get_operator({"StoreID": store_id})
     return templates.TemplateResponse("store_operators.html", {
         "request": request,
-        "operators": operators,
-        "store_id": store_id
+        "store": store[0],
+        "operators": operators
     })
 
 @router.get("/{store_id}/purchases", response_class=HTMLResponse)
@@ -113,8 +150,17 @@ async def get_store_purchases(
     store_id: int,
     db: SQLiteDatabase = Depends(get_db)
 ):
+    store = db.get_store({"StoreID": store_id})
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+        
     purchases = db.get_purchase({"StoreID": store_id})
     purchase_items = db.get_purchase_item()
+    
+    # Get data for the purchase form
+    customers = db.get_customer({"StoreID": store_id})
+    operators = db.get_operator({"StoreID": store_id})
+    medicines = db.get_medicine({"StoreID": store_id})
     
     # Combine purchase data with related information
     purchase_details = []
@@ -127,15 +173,19 @@ async def get_store_purchases(
             medicine = db.get_medicine({"MedicineID": item["MedicineID"]})
             
             purchase_details.append({
+                "purchase_id": purchase["PurchaseID"],
+                "date": purchase["DateOfPurchase"],
                 "customer": customer[0]["Name"] if customer else "Unknown",
                 "medicine": medicine[0]["Name"] if medicine else "Unknown",
                 "quantity": item["Quantity"],
-                "operator": operator[0]["Name"] if operator else "Unknown",
-                "date": purchase["DateOfPurchase"]
+                "operator": operator[0]["Name"] if operator else "Unknown"
             })
     
     return templates.TemplateResponse("store_purchases.html", {
         "request": request,
+        "store": store[0],
         "purchases": purchase_details,
-        "store_id": store_id
+        "customers": customers,
+        "operators": operators,
+        "medicines": medicines
     }) 
