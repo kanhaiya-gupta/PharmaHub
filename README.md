@@ -13,6 +13,13 @@ PharmaHub is a comprehensive medical store management system that enables effici
 - Automatic data synchronization
 - Secure cloud-based deployment
 
+### 📹 Platform Overview
+
+![PharmaHub Platform Overview](docs/Overview.gif)
+
+*Complete platform functionality demonstration the features.*
+
+
 ## Prerequisites
 
 - Python 3.8 or higher
